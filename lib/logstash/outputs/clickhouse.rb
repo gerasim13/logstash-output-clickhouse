@@ -42,8 +42,6 @@ class LogStash::Outputs::ClickHouse < LogStash::Outputs::Base
 
   config :automatic_retries, :validate => :number, :default => 3
 
-  config :mutations, :validate => :hash, :default => {}
-
   def print_plugin_info()
     @@plugins = Gem::Specification.find_all{|spec| spec.name =~ /logstash-output-clickhouse/ }
     @plugin_name = @@plugins[0].name
@@ -87,32 +85,12 @@ class LogStash::Outputs::ClickHouse < LogStash::Outputs::Base
     buffer_receive(event)
   end
 
-  def mutate( src )
-    res = {}
-    @mutations.each_pair do |dstkey, source|
-      case source
-        when String then
-          scrkey = source
-          next unless src.key?(scrkey)
-
-          res[dstkey] = src[scrkey]
-        when Array then
-          scrkey = source[0]
-          next unless src.key?(scrkey)
-          pattern = source[1]
-          replace = source[2]
-          res[dstkey] = src[scrkey].sub( Regexp.new(pattern), replace )
-      end
-    end
-    res
-  end
-
   public
   def flush(events, close=false)
     documents = ""  #this is the string of hashes that we push to Fusion as documents
 
     events.each do |event|
-        documents << LogStash::Json.dump( mutate( event.to_hash() ) ) << "\n"
+        documents << LogStash::Json.dump( event.to_hash() ) << "\n"
     end
 
     hosts = []
